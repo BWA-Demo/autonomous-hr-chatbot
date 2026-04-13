@@ -1,9 +1,9 @@
 # load core modules
 import pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone
-from langchain.chat_models import AzureChatOpenAI, ChatOpenAI
 from langchain.chains import RetrievalQA
+
+from litellm_integrations import LitellmChatModel, LitellmEmbeddings
 # load agents and tools modules
 import pandas as pd
 from azure.storage.filedatalake import DataLakeServiceClient
@@ -22,11 +22,11 @@ pinecone.init(
 index_name = 'tk-policy'
 index = pinecone.Index(index_name) # connect to pinecone index
 
-# initialize embeddings object; for use with user query/input
-embed = OpenAIEmbeddings(
-                model = 'text-embedding-ada-002',
-                openai_api_key="<your openai api key from from platform.openai.com>",
-            )
+# initialize embeddings object; for use with user query/input (via LiteLLM)
+embed = LitellmEmbeddings(
+    model="text-embedding-ada-002",
+    api_key="<your openai api key from from platform.openai.com>",
+)
 
 # initialize langchain vectorstore(pinecone) object
 text_field = 'text' # key of dict that stores the text metadata in the index
@@ -34,11 +34,11 @@ vectorstore = Pinecone(
     index, embed.embed_query, text_field
 )
 
-llm = ChatOpenAI(    
-    openai_api_key="<your openai api key from from platform.openai.com>", 
-    model_name="gpt-3.5-turbo", 
-    temperature=0.0
-    )
+llm = LitellmChatModel(
+    openai_api_key="<your openai api key from from platform.openai.com>",
+    model_name="gpt-3.5-turbo",
+    temperature=0.0,
+)
 
 # initialize vectorstore retriever object
 timekeeping_policy = RetrievalQA.from_chain_type(

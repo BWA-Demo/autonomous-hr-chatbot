@@ -1,9 +1,9 @@
 # load core modules
 import pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone
-from langchain.chat_models import AzureChatOpenAI
 from langchain.chains import RetrievalQA
+
+from litellm_integrations import LitellmChatModel, LitellmEmbeddings
 # load agents and tools modules
 import pandas as pd
 from azure.storage.filedatalake import DataLakeServiceClient
@@ -23,14 +23,13 @@ index_name = 'tk-policy'
 index = pinecone.Index(index_name) # connect to pinecone index
 
 
-# initialize embeddings object; for use with user query/input
-embed = OpenAIEmbeddings(
-                deployment="<your deployment name>",
-                model="text-embedding-ada-002",
-                openai_api_key='<your azure openai api key>',
-                openai_api_base="<your api base>",
-                openai_api_type="azure",
-            )
+# initialize embeddings object; for use with user query/input (via LiteLLM + Azure OpenAI)
+embed = LitellmEmbeddings(
+    model="azure/<your embedding deployment name>",
+    api_key="<your azure openai api key>",
+    api_base="<your api base>",
+    api_version="2023-03-15-preview",
+)
 
 # initialize langchain vectorstore(pinecone) object
 text_field = 'text' # key of dict that stores the text metadata in the index
@@ -38,15 +37,14 @@ vectorstore = Pinecone(
     index, embed.embed_query, text_field
 )
 
-#initialize LLM object
-llm = AzureChatOpenAI(    
-    deployment_name="<your deployment name>", 
-    model_name="gpt-35-turbo", 
-    openai_api_key='<your openai api key>',
-    openai_api_version = '2023-03-15-preview', 
-    openai_api_base='<your api base>',
-    openai_api_type='azure'
-    )
+# initialize LLM object (via LiteLLM + Azure OpenAI)
+llm = LitellmChatModel(
+    model_name="azure/<your chat deployment name>",
+    openai_api_key="<your openai api key>",
+    api_base="<your api base>",
+    api_version="2023-03-15-preview",
+    temperature=0.0,
+)
 
 # initialize vectorstore retriever object
 timekeeping_policy = RetrievalQA.from_chain_type(
